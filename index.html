@@ -33,29 +33,71 @@
   }
 
   .controls {
-    margin-top:10px;
+    margin-top:14px;
     display:flex;
     flex-direction:column;
-    gap:8px;
+    gap:14px;
   }
 
+  /* ---------- BIG SLIDERS ---------- */
   input[type="range"] {
+    -webkit-appearance:none;
+    appearance:none;
     width:100%;
+    height:16px;
+    background:#333;
+    border-radius:999px;
+    outline:none;
   }
 
-  .trace-active {
-    outline:2px solid #ff0;
-    background:#222;
+  input[type="range"]::-webkit-slider-runnable-track {
+    height:16px;
+    background:#333;
+    border-radius:999px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    appearance:none;
+    width:32px;
+    height:32px;
+    background:#ff0;
+    border-radius:50%;
+    margin-top:-8px;
+    cursor:pointer;
+  }
+
+  input[type="range"]::-moz-range-track {
+    height:16px;
+    background:#333;
+    border-radius:999px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width:32px;
+    height:32px;
+    background:#ff0;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+  }
+
+  /* Trace active glow */
+  input[type="range"].trace-active::-webkit-slider-thumb,
+  input[type="range"].trace-active::-moz-range-thumb {
+    box-shadow:0 0 12px #ff0;
   }
 
   .row {
     display:flex;
-    gap:12px;
+    gap:14px;
     align-items:center;
   }
 
   button {
-    padding:6px 12px;
+    padding:8px 14px;
+    font-size:14px;
+    cursor:pointer;
   }
 </style>
 </head>
@@ -104,7 +146,7 @@ let lastY = 0;
 // Each stroke = { t, x1, y1, x2, y2 }
 let strokes = [];
 
-/* ------------------ helpers ------------------ */
+/* ---------- helpers ---------- */
 
 function resizeCanvas() {
   canvas.width = video.videoWidth;
@@ -130,13 +172,13 @@ function redraw() {
   }
 }
 
-/* ------------------ upload ------------------ */
+/* ---------- upload ---------- */
 
 upload.onchange = e => {
   video.src = URL.createObjectURL(e.target.files[0]);
 };
 
-/* ------------------ init ------------------ */
+/* ---------- init ---------- */
 
 video.onloadedmetadata = () => {
   resizeCanvas();
@@ -146,13 +188,13 @@ video.onloadedmetadata = () => {
 
 window.addEventListener("resize", resizeCanvas);
 
-/* ------------------ speed ------------------ */
+/* ---------- speed ---------- */
 
 speed.oninput = () => {
   video.playbackRate = speed.value;
 };
 
-/* ------------------ sync bars ------------------ */
+/* ---------- sync ---------- */
 
 video.ontimeupdate = () => {
   timebar1.value = video.currentTime;
@@ -160,14 +202,14 @@ video.ontimeupdate = () => {
   redraw();
 };
 
-/* ------------------ scrub ------------------ */
+/* ---------- scrub ---------- */
 
 timebar1.oninput = e => {
   video.currentTime = e.target.value;
   redraw();
 };
 
-/* ------------------ trace toggle (HOLD) ------------------ */
+/* ---------- trace (HOLD) ---------- */
 
 timebar2.oninput = () => {
   traceMode = true;
@@ -179,7 +221,7 @@ timebar2.onchange = () => {
   timebar2.classList.remove("trace-active");
 };
 
-/* ------------------ drawing ------------------ */
+/* ---------- drawing ---------- */
 
 canvas.onmousedown = e => {
   if (!traceMode) return;
@@ -214,7 +256,7 @@ canvas.onmousemove = e => {
   redraw();
 };
 
-/* ------------------ clear ------------------ */
+/* ---------- clear ---------- */
 
 clearBtn.onclick = () => {
   strokes = [];
