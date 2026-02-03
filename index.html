@@ -66,7 +66,7 @@
 <input type="file" id="upload" accept="video/*">
 
 <div class="stage">
-  <video id="video" muted autoplay></video>
+  <video id="video" muted autoplay playsinline></video>
   <canvas id="draw"></canvas>
 </div>
 
@@ -74,7 +74,7 @@
   <!-- Reference scrub -->
   <input type="range" id="timebar1" min="0" max="0" step="0.01">
 
-  <!-- Trace toggle -->
+  <!-- Hold to trace -->
   <input type="range" id="timebar2" min="0" max="0" step="0.01">
 
   <div class="row">
@@ -104,46 +104,87 @@ let lastY = 0;
 // Each stroke = { t, x1, y1, x2, y2 }
 let strokes = [];
 
-// upload
+/* ------------------ helpers ------------------ */
+
+function resizeCanvas() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+}
+
+function redraw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle = "rgba(255,255,0,0.25)";
+  ctx.lineWidth = 18;
+  ctx.lineCap = "round";
+
+  const t = video.currentTime;
+
+  for (const s of strokes) {
+    if (s.t <= t) {
+      ctx.beginPath();
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+      ctx.stroke();
+    }
+  }
+}
+
+/* ------------------ upload ------------------ */
+
 upload.onchange = e => {
   video.src = URL.createObjectURL(e.target.files[0]);
 };
 
-// init
+/* ------------------ init ------------------ */
+
 video.onloadedmetadata = () => {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  resizeCanvas();
   timebar1.max = video.duration;
   timebar2.max = video.duration;
 };
 
-// speed
+window.addEventListener("resize", resizeCanvas);
+
+/* ------------------ speed ------------------ */
+
 speed.oninput = () => {
   video.playbackRate = speed.value;
 };
 
-// sync bars
+/* ------------------ sync bars ------------------ */
+
 video.ontimeupdate = () => {
   timebar1.value = video.currentTime;
   timebar2.value = video.currentTime;
   redraw();
 };
 
-// scrub
+/* ------------------ scrub ------------------ */
+
 timebar1.oninput = e => {
   video.currentTime = e.target.value;
+  redraw();
 };
 
-// toggle trace recording
-timebar2.onclick = () => {
-  traceMode = !traceMode;
-  timebar2.classList.toggle("trace-active", traceMode);
+/* ------------------ trace toggle (HOLD) ------------------ */
+
+timebar2.oninput = () => {
+  traceMode = true;
+  timebar2.classList.add("trace-active");
 };
 
-// drawing input
+timebar2.onchange = () => {
+  traceMode = false;
+  timebar2.classList.remove("trace-active");
+};
+
+/* ------------------ drawing ------------------ */
+
 canvas.onmousedown = e => {
   if (!traceMode) return;
   drawing = true;
+
   const r = canvas.getBoundingClientRect();
   lastX = (e.clientX - r.left) * canvas.width / r.width;
   lastY = (e.clientY - r.top) * canvas.height / r.height;
@@ -169,32 +210,15 @@ canvas.onmousemove = e => {
 
   lastX = x;
   lastY = y;
+
+  redraw();
 };
 
-// redraw drawing layer based on time
-function redraw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+/* ------------------ clear ------------------ */
 
-  ctx.strokeStyle = "rgba(255,255,0,0.25)";
-  ctx.lineWidth = 18;
-  ctx.lineCap = "round";
-
-  const t = video.currentTime;
-
-  for (const s of strokes) {
-    if (s.t <= t) {
-      ctx.beginPath();
-      ctx.moveTo(s.x1, s.y1);
-      ctx.lineTo(s.x2, s.y2);
-      ctx.stroke();
-    }
-  }
-}
-
-// clear trace
 clearBtn.onclick = () => {
   strokes = [];
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  redraw();
 };
 </script>
 
