@@ -1,56 +1,273 @@
-/* SUPER THICC SLIDERS */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 28px;              /* ← THIS is the line thickness */
-  background: #2a2a2a;
-  border-radius: 999px;
-  outline: none;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Video Trace Recorder</title>
+
+<style>
+  body {
+    background:#111;
+    color:#fff;
+    font-family:system-ui;
+    padding:20px;
+  }
+
+  .stage {
+    position:relative;
+    width:640px;
+    max-width:100%;
+    margin-top:10px;
+  }
+
+  video, canvas {
+    width:100%;
+    display:block;
+    border-radius:8px;
+  }
+
+  canvas {
+    position:absolute;
+    top:0;
+    left:0;
+    pointer-events:auto;
+  }
+
+  .controls {
+    margin-top:16px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  /* ================= THICC SLIDERS ================= */
+
+  input[type="range"] {
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:32px;                 /* LINE THICKNESS */
+    background:#2a2a2a;
+    border-radius:999px;
+    outline:none;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height:32px;
+    background:#2a2a2a;
+    border-radius:999px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    appearance:none;
+    width:44px;
+    height:44px;
+    background:#ff0;
+    border-radius:50%;
+    margin-top:-6px;
+    cursor:pointer;
+  }
+
+  input[type="range"]::-moz-range-track {
+    height:32px;
+    background:#2a2a2a;
+    border-radius:999px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width:44px;
+    height:44px;
+    background:#ff0;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+  }
+
+  /* Trace active feedback */
+  input[type="range"].trace-active {
+    background:#3a3a00;
+  }
+
+  input[type="range"].trace-active::-webkit-slider-thumb,
+  input[type="range"].trace-active::-moz-range-thumb {
+    box-shadow:0 0 18px #ff0;
+  }
+
+  .row {
+    display:flex;
+    gap:16px;
+    align-items:center;
+  }
+
+  button {
+    padding:10px 16px;
+    font-size:14px;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<h3>Video Trace Recorder</h3>
+
+<input type="file" id="upload" accept="video/*">
+
+<div class="stage">
+  <video id="video" muted autoplay playsinline></video>
+  <canvas id="draw"></canvas>
+</div>
+
+<div class="controls">
+  <!-- Reference scrub -->
+  <input type="range" id="timebar1" min="0" max="0" step="0.01">
+
+  <!-- Hold to trace -->
+  <input type="range" id="timebar2" min="0" max="0" step="0.01">
+
+  <div class="row">
+    Speed
+    <input type="range" id="speed" min="0.05" max="2" step="0.05" value="1">
+    <button id="clear">Clear Trace</button>
+  </div>
+</div>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('draw');
+const ctx = canvas.getContext('2d');
+
+const upload = document.getElementById('upload');
+const speed = document.getElementById('speed');
+const clearBtn = document.getElementById('clear');
+
+const timebar1 = document.getElementById('timebar1');
+const timebar2 = document.getElementById('timebar2');
+
+let traceMode = false;
+let drawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// Each stroke = { t, x1, y1, x2, y2 }
+let strokes = [];
+
+/* ---------- helpers ---------- */
+
+function resizeCanvas() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 }
 
-/* WebKit track */
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 28px;
-  background: #2a2a2a;
-  border-radius: 999px;
+function redraw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle = "rgba(255,255,0,0.25)";
+  ctx.lineWidth = 18;
+  ctx.lineCap = "round";
+
+  const t = video.currentTime;
+
+  for (const s of strokes) {
+    if (s.t <= t) {
+      ctx.beginPath();
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+      ctx.stroke();
+    }
+  }
 }
 
-/* WebKit thumb */
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 40px;
-  height: 40px;
-  background: #ff0;
-  border-radius: 50%;
-  margin-top: -6px;          /* centers thumb on thick track */
-  cursor: pointer;
-}
+/* ---------- upload ---------- */
 
-/* Firefox track */
-input[type="range"]::-moz-range-track {
-  height: 28px;
-  background: #2a2a2a;
-  border-radius: 999px;
-}
+upload.onchange = e => {
+  video.src = URL.createObjectURL(e.target.files[0]);
+};
 
-/* Firefox thumb */
-input[type="range"]::-moz-range-thumb {
-  width: 40px;
-  height: 40px;
-  background: #ff0;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-}
+/* ---------- init ---------- */
 
-/* Trace active glow */
-input[type="range"].trace-active {
-  background: #3a3a00;
-}
+video.onloadedmetadata = () => {
+  resizeCanvas();
+  timebar1.max = video.duration;
+  timebar2.max = video.duration;
+};
 
-input[type="range"].trace-active::-webkit-slider-thumb,
-input[type="range"].trace-active::-moz-range-thumb {
-  box-shadow: 0 0 16px #ff0;
-}
+window.addEventListener("resize", resizeCanvas);
+
+/* ---------- speed ---------- */
+
+speed.oninput = () => {
+  video.playbackRate = speed.value;
+};
+
+/* ---------- sync ---------- */
+
+video.ontimeupdate = () => {
+  timebar1.value = video.currentTime;
+  timebar2.value = video.currentTime;
+  redraw();
+};
+
+/* ---------- scrub ---------- */
+
+timebar1.oninput = e => {
+  video.currentTime = e.target.value;
+  redraw();
+};
+
+/* ---------- trace (HOLD) ---------- */
+
+timebar2.oninput = () => {
+  traceMode = true;
+  timebar2.classList.add("trace-active");
+};
+
+timebar2.onchange = () => {
+  traceMode = false;
+  timebar2.classList.remove("trace-active");
+};
+
+/* ---------- drawing ---------- */
+
+canvas.onmousedown = e => {
+  if (!traceMode) return;
+  drawing = true;
+
+  const r = canvas.getBoundingClientRect();
+  lastX = (e.clientX - r.left) * canvas.width / r.width;
+  lastY = (e.clientY - r.top) * canvas.height / r.height;
+};
+
+canvas.onmouseup = () => drawing = false;
+canvas.onmouseleave = () => drawing = false;
+
+canvas.onmousemove = e => {
+  if (!drawing || !traceMode) return;
+
+  const r = canvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) * canvas.width / r.width;
+  const y = (e.clientY - r.top) * canvas.height / r.height;
+
+  strokes.push({
+    t: video.currentTime,
+    x1: lastX,
+    y1: lastY,
+    x2: x,
+    y2: y
+  });
+
+  lastX = x;
+  lastY = y;
+
+  redraw();
+};
+
+/* ---------- clear ---------- */
+
+clearBtn.onclick = () => {
+  strokes = [];
+  redraw();
+};
+</script>
+
+</body>
+</html>
