@@ -39,8 +39,6 @@
     gap:18px;
   }
 
-  /* ================= THICC SLIDERS ================= */
-
   input[type="range"] {
     -webkit-appearance:none;
     appearance:none;
@@ -48,60 +46,22 @@
     height:32px;
     background:#2a2a2a;
     border-radius:999px;
-    outline:none;
-  }
-
-  input[type="range"]::-webkit-slider-runnable-track {
-    height:32px;
-    background:#2a2a2a;
-    border-radius:999px;
   }
 
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance:none;
-    appearance:none;
     width:44px;
     height:44px;
-    background:var(--thumb, #ccc);
+    background:#ff0;
     border-radius:50%;
     margin-top:-6px;
     cursor:pointer;
-  }
-
-  input[type="range"]::-moz-range-track {
-    height:32px;
-    background:#2a2a2a;
-    border-radius:999px;
-  }
-
-  input[type="range"]::-moz-range-thumb {
-    width:44px;
-    height:44px;
-    background:var(--thumb, #ccc);
-    border-radius:50%;
-    border:none;
-    cursor:pointer;
-  }
-
-  input[type="range"].trace-active {
-    background:#3a3a00;
-  }
-
-  input[type="range"].trace-active::-webkit-slider-thumb,
-  input[type="range"].trace-active::-moz-range-thumb {
-    box-shadow:0 0 18px #ff0;
   }
 
   .row {
     display:flex;
     gap:16px;
     align-items:center;
-  }
-
-  .row label {
-    width:18px;
-    text-align:center;
-    font-weight:600;
   }
 
   button {
@@ -130,20 +90,10 @@
   <!-- Hold to trace -->
   <input type="range" id="timebar2" min="0" max="0" step="0.01">
 
-  <!-- RGB -->
+  <!-- TRUE removal -->
   <div class="row">
-    <label>R</label>
-    <input type="range" id="r" min="0" max="255" value="255">
-  </div>
-
-  <div class="row">
-    <label>G</label>
-    <input type="range" id="g" min="0" max="255" value="255">
-  </div>
-
-  <div class="row">
-    <label>B</label>
-    <input type="range" id="b" min="0" max="255" value="0">
+    Trace Visibility
+    <input type="range" id="alpha" min="0" max="1" step="0.01" value="0.25">
   </div>
 
   <div class="row">
@@ -164,10 +114,7 @@ const clearBtn = document.getElementById('clear');
 
 const timebar1 = document.getElementById('timebar1');
 const timebar2 = document.getElementById('timebar2');
-
-const rSlider = document.getElementById('r');
-const gSlider = document.getElementById('g');
-const bSlider = document.getElementById('b');
+const alphaSlider = document.getElementById('alpha');
 
 let traceMode = false;
 let drawing = false;
@@ -187,15 +134,12 @@ function resizeCanvas() {
 function redraw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  const r = +rSlider.value;
-  const g = +gSlider.value;
-  const b = +bSlider.value;
+  const t = video.currentTime;
+  const a = +alphaSlider.value;
 
-  ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
+  ctx.strokeStyle = `rgba(255,255,0,${a})`;
   ctx.lineWidth = 18;
   ctx.lineCap = "round";
-
-  const t = video.currentTime;
 
   for (const s of strokes) {
     if (s.t <= t) {
@@ -205,18 +149,6 @@ function redraw() {
       ctx.stroke();
     }
   }
-}
-
-function updateColor() {
-  const r = +rSlider.value;
-  const g = +gSlider.value;
-  const b = +bSlider.value;
-
-  rSlider.style.setProperty('--thumb', `rgb(${r},0,0)`);
-  gSlider.style.setProperty('--thumb', `rgb(0,${g},0)`);
-  bSlider.style.setProperty('--thumb', `rgb(0,0,${b})`);
-
-  redraw();
 }
 
 /* ---------- upload ---------- */
@@ -231,7 +163,7 @@ video.onloadedmetadata = () => {
   resizeCanvas();
   timebar1.max = video.duration;
   timebar2.max = video.duration;
-  updateColor();
+  redraw();
 };
 
 window.addEventListener("resize", resizeCanvas);
@@ -304,11 +236,9 @@ canvas.onmousemove = e => {
   redraw();
 };
 
-/* ---------- color sliders ---------- */
+/* ---------- visibility ---------- */
 
-[rSlider, gSlider, bSlider].forEach(sl => {
-  sl.oninput = updateColor;
-});
+alphaSlider.oninput = redraw;
 
 /* ---------- clear ---------- */
 
