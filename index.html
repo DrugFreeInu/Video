@@ -62,7 +62,7 @@
     appearance:none;
     width:44px;
     height:44px;
-    background:#ff0;
+    background:var(--thumb, #ccc);
     border-radius:50%;
     margin-top:-6px;
     cursor:pointer;
@@ -77,13 +77,12 @@
   input[type="range"]::-moz-range-thumb {
     width:44px;
     height:44px;
-    background:#ff0;
+    background:var(--thumb, #ccc);
     border-radius:50%;
     border:none;
     cursor:pointer;
   }
 
-  /* Trace active feedback */
   input[type="range"].trace-active {
     background:#3a3a00;
   }
@@ -131,7 +130,7 @@
   <!-- Hold to trace -->
   <input type="range" id="timebar2" min="0" max="0" step="0.01">
 
-  <!-- RGB Saturation -->
+  <!-- RGB -->
   <div class="row">
     <label>R</label>
     <input type="range" id="r" min="0" max="255" value="255">
@@ -188,9 +187,9 @@ function resizeCanvas() {
 function redraw() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  const r = rSlider.value;
-  const g = gSlider.value;
-  const b = bSlider.value;
+  const r = +rSlider.value;
+  const g = +gSlider.value;
+  const b = +bSlider.value;
 
   ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
   ctx.lineWidth = 18;
@@ -208,6 +207,18 @@ function redraw() {
   }
 }
 
+function updateColor() {
+  const r = +rSlider.value;
+  const g = +gSlider.value;
+  const b = +bSlider.value;
+
+  rSlider.style.setProperty('--thumb', `rgb(${r},0,0)`);
+  gSlider.style.setProperty('--thumb', `rgb(0,${g},0)`);
+  bSlider.style.setProperty('--thumb', `rgb(0,0,${b})`);
+
+  redraw();
+}
+
 /* ---------- upload ---------- */
 
 upload.onchange = e => {
@@ -220,6 +231,7 @@ video.onloadedmetadata = () => {
   resizeCanvas();
   timebar1.max = video.duration;
   timebar2.max = video.duration;
+  updateColor();
 };
 
 window.addEventListener("resize", resizeCanvas);
@@ -292,10 +304,10 @@ canvas.onmousemove = e => {
   redraw();
 };
 
-/* ---------- live color redraw ---------- */
+/* ---------- color sliders ---------- */
 
 [rSlider, gSlider, bSlider].forEach(sl => {
-  sl.oninput = redraw;
+  sl.oninput = updateColor;
 });
 
 /* ---------- clear ---------- */
